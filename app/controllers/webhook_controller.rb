@@ -17,6 +17,9 @@ class WebhookController < ApplicationController
     case event_type
     when "message"
       input_text = event["message"]["text"]
+      if input_text == "ラーメン"
+        input_text = "いつでしょうか？"
+      end
       puts "----------------------------------"
       puts input_text
       output_text = input_text
