@@ -23,23 +23,20 @@ class WebhookController < ApplicationController
       else
         begin
           scheduled_at = Time.parse(event["message"]["text"])
-          Ramen.create(user_id: user_id, scheduled_at: input_text) if scheduled_at
+          if scheduled_at
+            Ramen.create(user_id: user_id, scheduled_at: input_text)
+            input_text = scheduled_at.to_s(:datetime) + 'にラーメン'
         rescue => e
           if e
-            input_text = "ラーメンと入力し、ラーメンを食べに行く予定を決めましょう。"
+            input_text = "あなたが入力したモノはformatに不備があります。ラーメンと入力し、正しいフォーマットで入力し(例: 2017/08/30 10:00)ラーメンを食べに行く予定を決めましょう。"
           end
         end
       end
-      puts "----------------------------------"
-      puts input_text
       output_text = input_text
     end
 
     client = LineClient.new(CHANNEL_ACCESS_TOKEN, OUTBOUND_PROXY)
     res = client.reply(replyToken, output_text)
-    puts "----------------------------------"
-    puts replyToken
-    puts "----------------------------------"
 
     if res.status == 200
       logger.info({success: res})
