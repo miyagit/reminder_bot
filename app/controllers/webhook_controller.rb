@@ -23,7 +23,7 @@ class WebhookController < ApplicationController
       else
         begin
           scheduled_at = Time.parse(event["message"]["text"])
-        rescue = e
+        rescue => e
           if e
             input_text = "ラーメンと入力し、ラーメンを食べに行く予定を決めましょう。"
           else
