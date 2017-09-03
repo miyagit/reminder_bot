@@ -23,12 +23,10 @@ class WebhookController < ApplicationController
       else
         begin
           scheduled_at = Time.parse(event["message"]["text"])
+          Ramen.create(user_id: user_id, scheduled_at: input_text) if scheduled_at
         rescue => e
           if e
             input_text = "ラーメンと入力し、ラーメンを食べに行く予定を決めましょう。"
-          else
-            Ramen.create(user_id: user_id, scheduled_at: scheduled_at)
-            input_text = "hogehoge"
           end
         end
       end
