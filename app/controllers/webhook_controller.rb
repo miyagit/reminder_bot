@@ -13,6 +13,7 @@ class WebhookController < ApplicationController
     event = params["events"][0]
     event_type = event["type"]
     replyToken = event["replyToken"]
+    user_id = params["webhook"]["events"][0]["source"]["userId"]
 
     case event_type
     when "message"
@@ -20,7 +21,16 @@ class WebhookController < ApplicationController
       if input_text == "ラーメン"
         input_text = "いつでしょうか？"
       else
-        input_text = "ラーメンと入力し、ラーメンを食べに行く予定を決めましょう。"
+        begin
+          scheduled_at = Time.parse(event["message"]["text"])
+        rescue = e
+          if e
+            input_text = "ラーメンと入力し、ラーメンを食べに行く予定を決めましょう。"
+          else
+            Ramen.create(user_id: user_id, scheduled_at: scheduled_at)
+            input_text = "hogehoge"
+          end
+        end
       end
       puts "----------------------------------"
       puts input_text
