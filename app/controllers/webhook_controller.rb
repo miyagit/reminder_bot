@@ -26,6 +26,7 @@ class WebhookController < ApplicationController
           if scheduled_at
             Ramen.create(user_id: user_id, scheduled_at: input_text)
             input_text = scheduled_at.to_s(:datetime) + 'にラーメン'
+          end
         rescue => e
           if e
             input_text = "あなたが入力したモノはformatに不備があります。ラーメンと入力し、正しいフォーマットで入力し(例: 2017/08/30 10:00)ラーメンを食べに行く予定を決めましょう。"
