@@ -19,6 +19,8 @@ class WebhookController < ApplicationController
       input_text = event["message"]["text"]
       if input_text == "ラーメン"
         input_text = "いつでしょうか？"
+      else
+        input_text = "ラーメンと入力し、ラーメンを食べに行く予定を決めましょう。"
       end
       puts "----------------------------------"
       puts input_text
@@ -27,6 +29,9 @@ class WebhookController < ApplicationController
 
     client = LineClient.new(CHANNEL_ACCESS_TOKEN, OUTBOUND_PROXY)
     res = client.reply(replyToken, output_text)
+    puts "----------------------------------"
+    puts replyToken
+    puts "----------------------------------"
 
     if res.status == 200
       logger.info({success: res})
