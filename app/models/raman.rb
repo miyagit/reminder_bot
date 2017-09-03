@@ -1,0 +1,2 @@
+class Raman < ApplicationRecord
+end
