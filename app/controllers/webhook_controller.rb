@@ -13,7 +13,11 @@ class WebhookController < ApplicationController
     event = params["events"][0]
     event_type = event["type"]
     replyToken = event["replyToken"]
-    user_id = params["webhook"]["events"][0]["source"]["userId"]
+    if params["webhook"]["events"][0]["source"]["groupId"]
+      line_id = params["webhook"]["events"][0]["source"]["groupId"]
+    else
+      line_id = params["webhook"]["events"][0]["source"]["userId"]
+    end
 
     case event_type
     when "message"
@@ -23,13 +27,13 @@ class WebhookController < ApplicationController
       elsif dily_include?(input_text) == "true"
         /日/ =~ input_text
         daily_time = daily_change(Regexp.last_match.pre_match) + ' ' + Regexp.last_match.post_match.insert(2, ":")
-        Ramen.create(line_id: user_id, scheduled_at: daily_time)
+        Ramen.create(line_id: line_id, scheduled_at: daily_time)
         input_text = Time.parse(daily_time).to_s(:datetime) + 'にラーメン'
       else
         begin
           scheduled_at = Time.parse(event["message"]["text"])
           if scheduled_at
-            Ramen.create(line_id: user_id, scheduled_at: input_text)
+            Ramen.create(line_id: line_id, scheduled_at: input_text)
             input_text = scheduled_at.to_s(:datetime) + 'にラーメン'
           end
         rescue => e
