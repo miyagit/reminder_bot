@@ -13,7 +13,7 @@
 ActiveRecord::Schema.define(version: 20170903060712) do
 
   create_table "ramen", force: :cascade, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8" do |t|
-    t.string "user_id"
+    t.string "line_id"
     t.datetime "scheduled_at"
   end
 

@@ -13,7 +13,7 @@ handler do |job|
     @ramen_schedules = Ramen.all
     @ramen_schedules.each do |ramen_schedule|
       if ramen_schedule.scheduled_at.to_s(:datetime) == Time.now.to_s(:datetime)
-        pushToken = ramen_schedule.user_id
+        pushToken = ramen_schedule.line_id
         output_text = ramen_schedule.scheduled_at.to_s(:datetime) + "にラーメン"
         client = LineClient.new(LINE_PRODUCTION_API_KEY, OUTBOUND_PROXY)
         push = client.push(pushToken, output_text)

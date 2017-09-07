@@ -20,11 +20,16 @@ class WebhookController < ApplicationController
       input_text = event["message"]["text"]
       if input_text == "ラーメン"
         input_text = "いつでしょうか？"
+      elsif dily_include?(input_text) == "true"
+        /日/ =~ input_text
+        daily_time = daily_change(Regexp.last_match.pre_match) + ' ' + Regexp.last_match.post_match.insert(2, ":")
+        Ramen.create(line_id: user_id, scheduled_at: daily_time)
+        input_text = Time.parse(daily_time).to_s(:datetime) + 'にラーメン'
       else
         begin
           scheduled_at = Time.parse(event["message"]["text"])
           if scheduled_at
-            Ramen.create(user_id: user_id, scheduled_at: input_text)
+            Ramen.create(line_id: user_id, scheduled_at: input_text)
             input_text = scheduled_at.to_s(:datetime) + 'にラーメン'
           end
         rescue => e
@@ -56,6 +61,28 @@ class WebhookController < ApplicationController
     hash = OpenSSL::HMAC::digest(OpenSSL::Digest::SHA256.new, LINE_PRODUCTION_API_SECRET, http_request_body)
     signature_answer = Base64.strict_encode64(hash)
     signature == signature_answer
+  end
+
+  def daily_change(b)
+    case b
+    when '今'
+      return Time.now.to_s(:date)
+    when '明'
+      return Time.now.tomorrow.to_s(:date)
+    when '明後'
+      return Time.now.tomorrow.tomorrow.to_s(:date)
+    when '明々後'
+      return Time.now.tomorrow.tomorrow.tomorrow.to_s(:date)
+    end
+  end
+
+  def dily_include?(c)
+    dailys = ["今日", "明日", "明後日", "明々後日"]
+    dailys.each do |daily|
+      if c.include?(daily)
+        return "true"
+      end
+    end
   end
 
 end
