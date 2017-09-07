@@ -41,4 +41,20 @@ class LineClient
     post('/v2/bot/message/reply', body.to_json)
   end
 
+  def push(pushToken, text)
+
+    messages = [
+      {
+        "type" => "text" ,
+        "text" => text
+      }
+    ]
+
+    body = {
+      "to" => pushToken ,
+      "messages" => messages
+    }
+    post('/v2/bot/message/push', body.to_json)
+  end
+
 end

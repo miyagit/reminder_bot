@@ -57,4 +57,5 @@ class WebhookController < ApplicationController
     signature_answer = Base64.strict_encode64(hash)
     signature == signature_answer
   end
+
 end
