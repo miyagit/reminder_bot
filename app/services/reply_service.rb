@@ -1,6 +1,15 @@
 class ReplyService
 
   attr_reader :query_params
+  @@remind_content = nil
+
+  def post_remind_content(remind_content)
+    @@remind_content = remind_content
+  end
+
+  def get_remind_content
+    @@remind_content
+  end
 
   def initialize(params)
     @query_params = params || {}
@@ -8,7 +17,7 @@ class ReplyService
 
   def cancel_escape(line_text)
     if line_text == "キャンセル"
-      $remind_content = nil
+      @@remind_content = nil
       throw :escape
     end
   end
@@ -23,14 +32,14 @@ class ReplyService
       if dily_include?(remind_schedule) == "true"
         /日/ =~ remind_schedule
         daily_time = daily_change(Regexp.last_match.pre_match) + ' ' + Regexp.last_match.post_match.insert(2, ":")
-        Reminder.create(line_id: line_id, scheduled_at: daily_time, remind_content: $remind_content)
-        remind_schedule = Time.parse(daily_time).to_s(:datetime) + 'に' + $remind_content
+        Reminder.create(line_id: line_id, scheduled_at: daily_time, remind_content: @@remind_content)
+        remind_schedule = Time.parse(daily_time).to_s(:datetime) + 'に' + @@remind_content
       else
         begin
           scheduled_at = Time.parse(line_text)
           if scheduled_at
-            Reminder.create(line_id: line_id, scheduled_at: remind_schedule, remind_content: $remind_content)
-            remind_schedule = scheduled_at.to_s(:datetime) + 'に' + $remind_content
+            Reminder.create(line_id: line_id, scheduled_at: remind_schedule, remind_content: @@remind_content)
+            remind_schedule = scheduled_at.to_s(:datetime) + 'に' + @@remind_content
           end
         rescue => e
           if e
