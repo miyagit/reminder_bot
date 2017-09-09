@@ -1,2 +1,0 @@
-class Ramen < ApplicationRecord
-end

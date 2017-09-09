@@ -10,11 +10,11 @@ LINE_PRODUCTION_API_KEY = ENV.fetch("LINE_PRODUCTION_API_KEY")
 handler do |job|
   case job
   when "remind.job"
-    @ramen_schedules = Ramen.all
-    @ramen_schedules.each do |ramen_schedule|
-      if ramen_schedule.scheduled_at.to_s(:datetime) == Time.now.to_s(:datetime)
-        pushToken = ramen_schedule.line_id
-        output_text = ramen_schedule.scheduled_at.to_s(:datetime) + 'に' + ramen_schedule.remind_content
+    @reminder_schedules = Reminder.all
+    @reminder_schedules.each do |reminder_schedule|
+      if reminder_schedule.scheduled_at.to_s(:datetime) == Time.now.to_s(:datetime)
+        pushToken = reminder_schedule.line_id
+        output_text = reminder_schedule.scheduled_at.to_s(:datetime) + 'に' + reminder_schedule.remind_content
         client = LineClient.new(LINE_PRODUCTION_API_KEY, OUTBOUND_PROXY)
         push = client.push(pushToken, output_text)
         if push.status == 200
