@@ -6,64 +6,26 @@ class WebhookController < ApplicationController
       render :nothing => true, status: 470
     end
 
+    reply_service = ReplyService.new(params)
+    replyToken = reply_service.query_params["events"][0]["replyToken"]
+    line_text  = reply_service.query_params["events"][0]["message"]["text"]
+    id_belongs = reply_service.query_params["webhook"]["events"][0]["source"]
+    event = reply_service.query_params["events"][0]
+
     catch :escape do
 
       if $remind_content
-        cancel_escape
-        event = params["events"][0]
-        event_type = event["type"]
-        replyToken = event["replyToken"]
-        if params["webhook"]["events"][0]["source"]["groupId"]
-          line_id = params["webhook"]["events"][0]["source"]["groupId"]
-        else
-          line_id = params["webhook"]["events"][0]["source"]["userId"]
-        end
-
-        case event_type
-        when "message"
-          remind_schedule = event["message"]["text"]
-          if dily_include?(remind_schedule) == "true"
-            /日/ =~ remind_schedule
-            daily_time = daily_change(Regexp.last_match.pre_match) + ' ' + Regexp.last_match.post_match.insert(2, ":")
-            Reminder.create(line_id: line_id, scheduled_at: daily_time, remind_content: $remind_content)
-            remind_schedule = Time.parse(daily_time).to_s(:datetime) + 'に' + $remind_content
-          else
-            begin
-              scheduled_at = Time.parse(event["message"]["text"])
-              if scheduled_at
-                Reminder.create(line_id: line_id, scheduled_at: remind_schedule, remind_content: $remind_content)
-                remind_schedule = scheduled_at.to_s(:datetime) + 'に' + $remind_content
-              end
-            rescue => e
-              if e
-                remind_schedule = "あなたが入力したモノはフォーマットには不備があります。正しいフォーマットで入力して下さい(例: 2017/08/30 10:00)"
-              end
-            end
-          end
-        end
-
-        client = LineClient.new(ENV.fetch("LINE_PRODUCTION_API_KEY"), ENV.fetch("OUTBOUND_PROXY"))
-        res = client.reply(replyToken, remind_schedule)
-
-        if res.status == 200
-          logger.info({success: res})
-        else
-          logger.info({fail: res})
-        end
+        reply_service.cancel_escape(line_text)
+        remind_schedule = reply_service.remind_create_content(id_belongs, event, line_text)
+        reply_message(replyToken, remind_schedule)
         $remind_content = nil
-
-      elsif params["events"][0]["message"]["text"] == "キャンセル"
-        delete_remind
+      elsif line_text == "キャンセル"
+        delete_judge_text = reply_service.delete_remind(id_belongs)
+        reply_message(replyToken, delete_judge_text)
+        $remind_content = nil
       else
-        $remind_content = params["events"][0]["message"]["text"]
-        replyToken = params["events"][0]["replyToken"]
-        client = LineClient.new(ENV.fetch("LINE_PRODUCTION_API_KEY"), ENV.fetch("OUTBOUND_PROXY"))
-        res = client.reply(replyToken, "いつでしょうか？")
-        if res.status == 200
-          logger.info({success: res})
-        else
-          logger.info({fail: res})
-        end
+        $remind_content = line_text
+        reply_message(replyToken, "いつでしょうか？")
       end
     end
 
@@ -80,58 +42,13 @@ class WebhookController < ApplicationController
     signature == signature_answer
   end
 
-  def daily_change(b)
-    case b
-    when '今'
-      return Time.now.to_s(:date)
-    when '明'
-      return Time.now.tomorrow.to_s(:date)
-    when '明後'
-      return Time.now.tomorrow.tomorrow.to_s(:date)
-    when '明々後'
-      return Time.now.tomorrow.tomorrow.tomorrow.to_s(:date)
-    end
-  end
-
-  def dily_include?(c)
-    dailys = ["今日", "明日", "明後日", "明々後日"]
-    dailys.each do |daily|
-      if c.include?(daily)
-        return "true"
-      end
-    end
-  end
-
-  def cancel_escape
-    if params["events"][0]["message"]["text"] == "キャンセル"
-      $remind_content = nil
-      throw :escape
-    end
-  end
-
-  def delete_remind
-    replyToken = params["events"][0]["replyToken"]
-    if params["webhook"]["events"][0]["source"]["groupId"]
-      line_id = params["webhook"]["events"][0]["source"]["groupId"]
-    else
-      line_id = params["webhook"]["events"][0]["source"]["userId"]
-    end
-    latest = Reminder.where(line_id: line_id).order('created_at DESC').first
-    if latest
-      Reminder.destroy(Reminder.where(line_id: line_id, created_at: latest.created_at).ids)
-      delete_judge_text =  latest.remind_content + '(' + latest.scheduled_at.to_s(:datetime) + ')のリマインドを取り消しました'
-    else
-      delete_judge_text = 'リマインドは登録されていませんでした。'
-    end
+  def reply_message(replyToken, reply_text)
     client = LineClient.new(ENV.fetch("LINE_PRODUCTION_API_KEY"), ENV.fetch("OUTBOUND_PROXY"))
-    res = client.reply(replyToken, delete_judge_text)
-
+    res = client.reply(replyToken, reply_text)
     if res.status == 200
       logger.info({success: res})
     else
       logger.info({fail: res})
     end
-    $remind_content = nil
   end
-
 end
