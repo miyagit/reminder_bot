@@ -9,14 +9,7 @@ class WebhookController < ApplicationController
     catch :escape do
 
       if $remind_content
-        puts "---------------------------------------"
-        puts params["events"][0]["message"]["text"]
-        puts "---------------------------------------"
-        if params["events"][0]["message"]["text"] == "キャンセル"
-          puts "---------------------------------------vvv"
-          $remind_content = nil
-          throw :escape
-        end
+        cancel_escape
         event = params["events"][0]
         event_type = event["type"]
         replyToken = event["replyToken"]
@@ -104,6 +97,13 @@ class WebhookController < ApplicationController
       if c.include?(daily)
         return "true"
       end
+    end
+  end
+
+  def cancel_escape
+    if params["events"][0]["message"]["text"] == "キャンセル"
+      $remind_content = nil
+      throw :escape
     end
   end
 
