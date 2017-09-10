@@ -2,6 +2,7 @@ class ReplyService
 
   attr_reader :query_params
   @@remind_content = nil
+  @@remind_false   = true
 
   def post_remind_content(remind_content)
     @@remind_content = remind_content
@@ -25,31 +26,38 @@ class ReplyService
   end
 
   def remind_create_content(id_belongs, event, line_text)
-    event_type = event["type"]
-    line_id = id_belongs["groupId"] || id_belongs["userId"]
+    while @@remind_false
+      event_type = event["type"]
+      line_id = id_belongs["groupId"] || id_belongs["userId"]
 
-    case event_type
-    when "message"
-      remind_schedule = line_text
-      if dily_include?(remind_schedule) == "true"
-        /日/ =~ remind_schedule
-        daily_time = daily_change(Regexp.last_match.pre_match) + ' ' + Regexp.last_match.post_match.insert(2, ":")
-        Reminder.create(line_id: line_id, scheduled_at: daily_time, remind_content: @@remind_content)
-        remind_schedule = Time.parse(daily_time).to_s(:datetime) + 'に' + @@remind_content
-      else
-        begin
-          scheduled_at = Time.parse(line_text)
-          if scheduled_at
-            Reminder.create(line_id: line_id, scheduled_at: remind_schedule, remind_content: @@remind_content)
-            remind_schedule = scheduled_at.to_s(:datetime) + 'に' + @@remind_content
-          end
-        rescue => e
-          if e
-            remind_schedule = "あなたが入力したモノはフォーマットには不備があります。正しいフォーマットで入力して下さい(例: 2017/08/30 10:00)"
+      case event_type
+      when "message"
+        remind_schedule = line_text
+        if dily_include?(remind_schedule) == "true"
+          /日/ =~ remind_schedule
+          daily_time = daily_change(Regexp.last_match.pre_match) + ' ' + Regexp.last_match.post_match.insert(2, ":")
+          Reminder.create(line_id: line_id, scheduled_at: daily_time, remind_content: @@remind_content)
+          remind_schedule = Time.parse(daily_time).to_s(:datetime) + 'に' + @@remind_content
+          @@remind_false = false
+        else
+          begin
+            scheduled_at = Time.parse(line_text)
+            if scheduled_at
+              Reminder.create(line_id: line_id, scheduled_at: remind_schedule, remind_content: @@remind_content)
+              remind_schedule = scheduled_at.to_s(:datetime) + 'に' + @@remind_content
+              @@remind_false = false
+            end
+          rescue => e
+            if e
+              remind_schedule = "あなたが入力したモノはフォーマットには不備があります。正しいフォーマットで入力して下さい(例: 2017/08/30 10:00)"
+            end
           end
         end
+        reply_message(query_params["events"][0]["replyToken"], remind_schedule)
       end
     end
+    post_remind_content(nil)
+    @@remind_false = true
   end
 
   def delete_remind(id_belongs)
@@ -61,6 +69,8 @@ class ReplyService
     else
       delete_judge_text = 'リマインドは登録されていませんでした。'
     end
+    reply_message(query_params["events"][0]["replyToken"], delete_judge_text)
+    post_remind_content(nil)
   end
 
   def reply_message(replyToken, reply_text)
@@ -89,7 +99,9 @@ class ReplyService
   def dily_include?(japanese_date)
     dailys = ["今日", "明日", "明後日", "明々後日"]
     dailys.each do |daily|
-      if japanese_date.include?(daily)
+      if japanese_date == daily
+        return false
+      elsif japanese_date.include?(daily)
         return "true"
       end
     end
