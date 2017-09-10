@@ -21,7 +21,6 @@ gem 'uglifier', '>= 1.3.0'
 
 gem "faraday"
 gem "faraday_middleware"
-gem 'dotenv-rails'
 gem 'pry-rails'
 gem 'foreman'
 gem 'clockwork'
