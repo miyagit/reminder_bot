@@ -17,15 +17,15 @@ class WebhookController < ApplicationController
       if reply_service.get_remind_content
         reply_service.cancel_escape(line_text)
         remind_schedule = reply_service.remind_create_content(id_belongs, event, line_text)
-        reply_message(replyToken, remind_schedule)
+        reply_service.reply_message(replyToken, remind_schedule)
         reply_service.post_remind_content(nil)
       elsif line_text == "キャンセル"
         delete_judge_text = reply_service.delete_remind(id_belongs)
-        reply_message(replyToken, delete_judge_text)
+        reply_service.reply_message(replyToken, delete_judge_text)
         reply_service.post_remind_content(nil)
       else
         reply_service.post_remind_content(line_text)
-        reply_message(replyToken, "いつでしょうか？")
+        reply_service.reply_message(replyToken, "いつでしょうか？")
       end
     end
 
@@ -42,13 +42,4 @@ class WebhookController < ApplicationController
     signature == signature_answer
   end
 
-  def reply_message(replyToken, reply_text)
-    client = LineClient.new(ENV.fetch("LINE_PRODUCTION_API_KEY"), ENV.fetch("OUTBOUND_PROXY"))
-    res = client.reply(replyToken, reply_text)
-    if res.status == 200
-      logger.info({success: res})
-    else
-      logger.info({fail: res})
-    end
-  end
 end

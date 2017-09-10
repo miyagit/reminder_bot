@@ -17,6 +17,8 @@ class ReplyService
 
   def cancel_escape(line_text)
     if line_text == "キャンセル"
+      cancel_reply = @@remind_content + 'のリマインド登録をキャンセルしました。'
+      reply_message(query_params["events"][0]["replyToken"], cancel_reply)
       @@remind_content = nil
       throw :escape
     end
@@ -58,6 +60,16 @@ class ReplyService
       delete_judge_text =  latest.remind_content + '(' + latest.scheduled_at.to_s(:datetime) + ')のリマインドを取り消しました'
     else
       delete_judge_text = 'リマインドは登録されていませんでした。'
+    end
+  end
+
+  def reply_message(replyToken, reply_text)
+    client = LineClient.new(ENV.fetch("LINE_PRODUCTION_API_KEY"), ENV.fetch("OUTBOUND_PROXY"))
+    res = client.reply(replyToken, reply_text)
+    if res.status == 200
+      Rails.logger.info({success: res})
+    else
+      Rails.logger.info({fail: res})
     end
   end
 
