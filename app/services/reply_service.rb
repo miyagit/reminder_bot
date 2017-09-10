@@ -33,7 +33,11 @@ class ReplyService
       case event_type
       when "message"
         remind_schedule = line_text
-        if dily_include?(remind_schedule) == "true"
+        if remind_datetime = judge_only_nanji_nanhun(line_text)
+          Reminder.create(line_id: line_id, scheduled_at: remind_datetime, remind_content: @@remind_content)
+          remind_schedule = Time.parse(remind_datetime).to_s(:datetime) + 'に' + @@remind_content
+          @@remind_false = false
+        elsif daily_include?(remind_schedule) == "true"
           /日/ =~ remind_schedule
           daily_time = daily_change(Regexp.last_match.pre_match) + ' ' + Regexp.last_match.post_match.insert(2, ":")
           Reminder.create(line_id: line_id, scheduled_at: daily_time, remind_content: @@remind_content)
@@ -96,7 +100,7 @@ class ReplyService
     end
   end
 
-  def dily_include?(japanese_date)
+  def daily_include?(japanese_date)
     dailys = ["今日", "明日", "明後日", "明々後日"]
     dailys.each do |daily|
       if japanese_date == daily
@@ -104,6 +108,15 @@ class ReplyService
       elsif japanese_date.include?(daily)
         return "true"
       end
+    end
+  end
+
+  def judge_only_nanji_nanhun(line_text)
+    if line_text.length == 4 && line_text.to_i != 0
+      line_time = Time.now.to_s(:date) + ' ' + line_text.insert(2, ":")
+      line_tomorrow_time = Time.now.tomorrow.to_s(:date) + ' ' + line_text
+      now_time = Time.now.to_s(:datetime)
+      now_time < line_time ? line_time : line_tomorrow_time
     end
   end
 
