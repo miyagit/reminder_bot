@@ -7,21 +7,17 @@ class WebhookController < ApplicationController
     end
 
     reply_service = ReplyService.new(params)
-    replyToken = reply_service.query_params["events"][0]["replyToken"]
-    line_text  = reply_service.query_params["events"][0]["message"]["text"]
-    id_belongs = reply_service.query_params["webhook"]["events"][0]["source"]
-    event = reply_service.query_params["events"][0]
 
     catch :escape do
 
       if reply_service.get_remind_content
-        reply_service.cancel_escape(line_text)
-        remind_schedule = reply_service.remind_create_content(id_belongs, event, line_text)
-      elsif line_text == "キャンセル"
-        reply_service.delete_remind(id_belongs)
+        reply_service.cancel_escape
+        reply_service.remind_create_content
+      elsif reply_service.line_text == "キャンセル"
+        reply_service.delete_remind
       else
-        reply_service.post_remind_content(line_text)
-        reply_service.reply_message(replyToken, "いつでしょうか？")
+        reply_service.post_remind_content
+        reply_service.reply_message("いつでしょうか？")
       end
     end
 

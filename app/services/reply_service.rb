@@ -1,11 +1,11 @@
 class ReplyService
 
-  attr_reader :query_params
-  @@remind_content = nil
-  @@remind_false   = true
+  attr_reader :replyToken, :line_text, :id_belongs, :event
 
-  def post_remind_content(remind_content)
-    @@remind_content = remind_content
+  @@remind_content = nil
+
+  def post_remind_content
+    @@remind_content = line_text
   end
 
   def get_remind_content
@@ -13,52 +13,51 @@ class ReplyService
   end
 
   def initialize(params)
-    @query_params = params || {}
+    @replyToken = params["events"][0]["replyToken"]
+    @line_text  = params["events"][0]["message"]["text"]
+    @id_belongs = params["webhook"]["events"][0]["source"]
+    @event      = params["events"][0]
   end
 
-  def cancel_escape(line_text)
+  def cancel_escape
     if line_text == "キャンセル"
       cancel_reply = @@remind_content + 'のリマインド登録をキャンセルしました。'
-      reply_message(query_params["events"][0]["replyToken"], cancel_reply)
+      reply_message(cancel_reply)
       @@remind_content = nil
       throw :escape
     end
   end
 
-  def remind_create_content(id_belongs, event, line_text)
-    while @@remind_false
-      event_type = event["type"]
-      line_id = id_belongs["roomId"] || id_belongs["groupId"] || id_belongs["userId"]
+  def remind_create_content
+    event_type = event["type"]
+    line_id = id_belongs["roomId"] || id_belongs["groupId"] || id_belongs["userId"]
 
-      case event_type
-      when "message"
-        remind_schedule = line_text
-        if remind_datetime = judge_only_nanji_nanhun(line_text)
-          remind_schedule = reminder_create(line_id, remind_datetime, @@remind_content)
-        elsif daily_include?(remind_schedule) == "true"
-          /日/ =~ remind_schedule
-          daily_time = daily_change(Regexp.last_match.pre_match) + ' ' + Regexp.last_match.post_match.insert(2, ":")
-          remind_schedule = reminder_create(line_id, daily_time, @@remind_content)
-        else
-          begin
-            scheduled_at = Time.parse(line_text)
-            if scheduled_at
-              remind_schedule = reminder_create(line_id, remind_schedule, @@remind_content)
-            end
-          rescue => e
-            if e
-              remind_schedule = "あなたが入力したモノはフォーマットには不備があります。正しいフォーマットで入力して下さい(例: 2017/08/30 10:00)"
-            end
+    case event_type
+    when "message"
+      remind_schedule = line_text
+      if remind_datetime = judge_only_nanji_nanhun
+        remind_schedule = reminder_create(line_id, remind_datetime)
+      elsif daily_include?(remind_schedule) == "true"
+        /日/ =~ remind_schedule
+        daily_time = daily_change(Regexp.last_match.pre_match) + ' ' + Regexp.last_match.post_match.insert(2, ":")
+        remind_schedule = reminder_create(line_id, daily_time)
+      else
+        begin
+          scheduled_at = Time.parse(line_text)
+          if scheduled_at
+            remind_schedule = reminder_create(line_id, remind_schedule)
+          end
+        rescue => e
+          if e
+            remind_schedule = "あなたが入力したモノはフォーマットには不備があります。正しいフォーマットで入力して下さい(例: 2017/08/30 10:00)"
           end
         end
-        reply_message(query_params["events"][0]["replyToken"], remind_schedule)
       end
+      reply_message(remind_schedule)
     end
-    post_remind_content(nil)
-    @@remind_false = true
   end
 
-  def delete_remind(id_belongs)
+  def delete_remind
     line_id = id_belongs["roomId"] || id_belongs["groupId"] || id_belongs["userId"]
     latest = Reminder.where(line_id: line_id).order('created_at DESC').first
     if latest
@@ -67,11 +66,11 @@ class ReplyService
     else
       delete_judge_text = 'リマインドは登録されていませんでした。'
     end
-    reply_message(query_params["events"][0]["replyToken"], delete_judge_text)
+    reply_message(delete_judge_text)
     post_remind_content(nil)
   end
 
-  def reply_message(replyToken, reply_text)
+  def reply_message(reply_text)
     client = LineClient.new(ENV.fetch("LINE_PRODUCTION_API_KEY"), ENV.fetch("OUTBOUND_PROXY"))
     res = client.reply(replyToken, reply_text)
     if res.status == 200
@@ -105,7 +104,7 @@ class ReplyService
     end
   end
 
-  def judge_only_nanji_nanhun(line_text)
+  def judge_only_nanji_nanhun
     if line_text.length == 4 && line_text.to_i != 0
       line_time = Time.now.to_s(:date) + ' ' + line_text.insert(2, ":")
       line_tomorrow_time = Time.now.tomorrow.to_s(:date) + ' ' + line_text
@@ -114,11 +113,12 @@ class ReplyService
     end
   end
 
-  def reminder_create(line_id, scheduled_at, remind_content)
-    reminder = Reminder.new(line_id: line_id, scheduled_at: scheduled_at, remind_content: remind_content)
+  def reminder_create(line_id, scheduled_at)
+    reminder = Reminder.new(line_id: line_id, scheduled_at: scheduled_at, remind_content: @@remind_content)
     if reminder.save
-      @@remind_false = false
-      Time.parse(scheduled_at).to_s(:datetime) + 'に' + remind_content
+      remind_schedule = Time.parse(scheduled_at).to_s(:datetime) + 'に' + @@remind_content
+      @@remind_content = nil
+      return remind_schedule
     else
       reminder.errors.messages[:scheduled_at][0]
     end
