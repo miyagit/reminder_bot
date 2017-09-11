@@ -28,7 +28,7 @@ class ReplyService
   def remind_create_content(id_belongs, event, line_text)
     while @@remind_false
       event_type = event["type"]
-      line_id = id_belongs["groupId"] || id_belongs["userId"]
+      line_id = id_belongs["roomId"] || id_belongs["groupId"] || id_belongs["userId"]
 
       case event_type
       when "message"
@@ -59,7 +59,7 @@ class ReplyService
   end
 
   def delete_remind(id_belongs)
-    line_id = id_belongs["groupId"] || id_belongs["userId"]
+    line_id = id_belongs["roomId"] || id_belongs["groupId"] || id_belongs["userId"]
     latest = Reminder.where(line_id: line_id).order('created_at DESC').first
     if latest
       Reminder.destroy(Reminder.where(line_id: line_id, created_at: latest.created_at).ids)
