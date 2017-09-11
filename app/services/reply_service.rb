@@ -45,7 +45,11 @@ class ReplyService
         begin
           scheduled_at = Time.parse(line_text)
           if scheduled_at
-            remind_schedule = reminder_create(line_id, remind_schedule)
+            if line_text.include?("時") || line_text.include?("分")
+              remind_schedule = "時・分が入っている場合のリマインド登録はできません。正しいフォーマットで入力して下さい(例: 2017/08/30 10:00)"
+            else
+              remind_schedule = reminder_create(line_id, remind_schedule)
+            end
           end
         rescue => e
           if e
@@ -97,6 +101,8 @@ class ReplyService
     dailys = ["今日", "明日", "明後日", "明々後日"]
     dailys.each do |daily|
       if japanese_date == daily
+        return false
+      elsif japanese_date.include?("時") || japanese_date.include?("分")
         return false
       elsif japanese_date.include?(daily)
         return "true"
