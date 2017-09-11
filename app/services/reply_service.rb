@@ -34,22 +34,16 @@ class ReplyService
       when "message"
         remind_schedule = line_text
         if remind_datetime = judge_only_nanji_nanhun(line_text)
-          Reminder.create(line_id: line_id, scheduled_at: remind_datetime, remind_content: @@remind_content)
-          remind_schedule = Time.parse(remind_datetime).to_s(:datetime) + 'に' + @@remind_content
-          @@remind_false = false
+          remind_schedule = reminder_create(line_id, remind_datetime, @@remind_content)
         elsif daily_include?(remind_schedule) == "true"
           /日/ =~ remind_schedule
           daily_time = daily_change(Regexp.last_match.pre_match) + ' ' + Regexp.last_match.post_match.insert(2, ":")
-          Reminder.create(line_id: line_id, scheduled_at: daily_time, remind_content: @@remind_content)
-          remind_schedule = Time.parse(daily_time).to_s(:datetime) + 'に' + @@remind_content
-          @@remind_false = false
+          remind_schedule = reminder_create(line_id, daily_time, @@remind_content)
         else
           begin
             scheduled_at = Time.parse(line_text)
             if scheduled_at
-              Reminder.create(line_id: line_id, scheduled_at: remind_schedule, remind_content: @@remind_content)
-              remind_schedule = scheduled_at.to_s(:datetime) + 'に' + @@remind_content
-              @@remind_false = false
+              remind_schedule = reminder_create(line_id, remind_schedule, @@remind_content)
             end
           rescue => e
             if e
@@ -117,6 +111,16 @@ class ReplyService
       line_tomorrow_time = Time.now.tomorrow.to_s(:date) + ' ' + line_text
       now_time = Time.now.to_s(:datetime)
       now_time < line_time ? line_time : line_tomorrow_time
+    end
+  end
+
+  def reminder_create(line_id, scheduled_at, remind_content)
+    reminder = Reminder.new(line_id: line_id, scheduled_at: scheduled_at, remind_content: remind_content)
+    if reminder.save
+      @@remind_false = false
+      Time.parse(scheduled_at).to_s(:datetime) + 'に' + remind_content
+    else
+      reminder.errors.messages[:scheduled_at][0]
     end
   end
 
