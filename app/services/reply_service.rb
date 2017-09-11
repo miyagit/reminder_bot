@@ -63,7 +63,7 @@ class ReplyService
 
   def delete_remind
     line_id = id_belongs["roomId"] || id_belongs["groupId"] || id_belongs["userId"]
-    latest = Reminder.where(line_id: line_id).order('created_at DESC').first
+    latest = Reminder.where(line_id: line_id, remind_status: 0).order('created_at DESC').first
     if latest
       Reminder.destroy(Reminder.where(line_id: line_id, created_at: latest.created_at).ids)
       delete_judge_text =  latest.remind_content + '(' + latest.scheduled_at.to_s(:datetime) + ')のリマインドを取り消しました'
@@ -71,7 +71,7 @@ class ReplyService
       delete_judge_text = 'リマインドは登録されていませんでした。'
     end
     reply_message(delete_judge_text)
-    post_remind_content(nil)
+    @@remind_content = nil
   end
 
   def reply_message(reply_text)
@@ -80,7 +80,7 @@ class ReplyService
     if res.status == 200
       Rails.logger.info({success: res})
     else
-      Rails.logger.info({fail: res})
+      Rails.logger.error({fail: res})
     end
   end
 

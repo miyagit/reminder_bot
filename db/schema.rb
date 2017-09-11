@@ -12,18 +12,11 @@
 
 ActiveRecord::Schema.define(version: 20170909062509) do
 
-  create_table "reminder", force: :cascade, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8" do |t|
-    t.string "line_id"
-    t.datetime "scheduled_at"
-    t.string "remind_content"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-  end
-
   create_table "reminders", force: :cascade, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8" do |t|
     t.string "line_id"
     t.datetime "scheduled_at"
     t.string "remind_content"
+    t.integer "remind_status", default: 0
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
