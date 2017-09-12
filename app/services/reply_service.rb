@@ -1,6 +1,6 @@
 class ReplyService
 
-  attr_reader :replyToken, :line_text, :id_belongs, :event
+  attr_reader :replyToken, :line_text, :line_id, :event_type
 
   @@remind_content = nil
 
@@ -15,8 +15,8 @@ class ReplyService
   def initialize(params)
     @replyToken = params["events"][0]["replyToken"]
     @line_text  = params["events"][0]["message"]["text"]
-    @id_belongs = params["webhook"]["events"][0]["source"]
-    @event      = params["events"][0]
+    @line_id = params["webhook"]["events"][0]["source"]["roomId"] || params["webhook"]["events"][0]["source"]["groupId"] || params["webhook"]["events"][0]["source"]["userId"]
+    @event_type      = params["events"][0]["type"]
   end
 
   def cancel_escape
@@ -29,13 +29,11 @@ class ReplyService
   end
 
   def remind_create_content
-    event_type = event["type"]
-    line_id = id_belongs["roomId"] || id_belongs["groupId"] || id_belongs["userId"]
 
     case event_type
     when "message"
       remind_schedule = line_text
-      if remind_datetime = judge_only_nanji_nanhun
+      if remind_datetime = ja_to_date
         remind_schedule = reminder_create(line_id, remind_datetime)
       elsif daily_include?(remind_schedule) == "true"
         /日/ =~ remind_schedule
@@ -62,8 +60,7 @@ class ReplyService
   end
 
   def delete_remind
-    line_id = id_belongs["roomId"] || id_belongs["groupId"] || id_belongs["userId"]
-    latest = Reminder.where(line_id: line_id, remind_status: 0).order('created_at DESC').first
+    latest = Reminder.where(line_id: line_id, remind_status: 'sent').order('created_at DESC').first
     if latest
       Reminder.destroy(Reminder.where(line_id: line_id, created_at: latest.created_at).ids)
       delete_judge_text =  latest.remind_content + '(' + latest.scheduled_at.to_s(:datetime) + ')のリマインドを取り消しました'
@@ -110,7 +107,7 @@ class ReplyService
     end
   end
 
-  def judge_only_nanji_nanhun
+  def ja_to_date
     if line_text.length == 4 && line_text.to_i != 0
       line_time = Time.now.to_s(:date) + ' ' + line_text.insert(2, ":")
       line_tomorrow_time = Time.now.tomorrow.to_s(:date) + ' ' + line_text
