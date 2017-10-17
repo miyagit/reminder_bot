@@ -33,7 +33,7 @@ class LineClient
       conn.proxy @proxy
     end
 
-    res = client.post do |request|
+    res = client.get do |request|
       request.url path
       request.headers = {
         'Content-type' => 'application/json',
