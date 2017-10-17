@@ -17,7 +17,7 @@ class WebhookController < ApplicationController
         reply_service.delete_remind
       else
         reply_service.post_remind_content
-        reply_service.reply_message("いつでしょうか？")
+        reply_service.reply_message("わかったワン！ いつお知らせすればいいですか？")
       end
     end
 

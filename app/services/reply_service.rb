@@ -44,14 +44,14 @@ class ReplyService
           scheduled_at = Time.parse(line_text)
           if scheduled_at
             if line_text.include?("時") || line_text.include?("分")
-              remind_schedule = "時・分が入っている場合のリマインド登録はできません。正しいフォーマットで入力して下さい(例: 2017/08/30 10:00)"
+              remind_schedule = "時・分が入っている場合のリマインド登録はできないワン。正しいフォーマットで入力して下さい(例: 2017/08/30 10:00)"
             else
               remind_schedule = reminder_create(line_id, remind_schedule)
             end
           end
         rescue => e
           if e
-            remind_schedule = "あなたが入力したモノはフォーマットには不備があります。正しいフォーマットで入力して下さい(例: 2017/08/30 10:00)"
+            remind_schedule = "それじゃわからないワン。 正しいフォーマットで入力して下さい(例: 2017/08/30 10:00)"
           end
         end
       end
@@ -119,7 +119,7 @@ class ReplyService
   def reminder_create(line_id, scheduled_at)
     reminder = Reminder.new(line_id: line_id, scheduled_at: scheduled_at, remind_content: @@remind_content)
     if reminder.save
-      remind_schedule = Time.parse(scheduled_at).to_s(:datetime) + 'に' + @@remind_content
+      remind_schedule = "#{@@remind_content}の時間だワン♪"
       @@remind_content = nil
       return remind_schedule
     else
