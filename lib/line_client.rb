@@ -57,4 +57,8 @@ class LineClient
     post('/v2/bot/message/push', body.to_json)
   end
 
+  def get_profile(user_id)
+    get("v2/bot/profile/#{user_id}",)
+  end
+
 end
