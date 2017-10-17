@@ -4,7 +4,7 @@ class PushService
     @reminder_schedules.each do |reminder_schedule|
       if reminder_schedule.scheduled_at.to_s(:datetime) == Time.now.to_s(:datetime)
         pushToken = reminder_schedule.line_id
-        output_text = reminder_schedule.scheduled_at.to_s(:datetime) + 'に' + reminder_schedule.remind_content
+        output_text = "#{reminder_schedule.display_name}さん！ に「#{reminder_schedule.remind_content}」の時間だワン♪"
         client = LineClient.new(ENV.fetch("LINE_PRODUCTION_API_KEY"), ENV.fetch("OUTBOUND_PROXY"))
         push = client.push(pushToken, output_text)
         if push.status == 200

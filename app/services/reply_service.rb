@@ -14,9 +14,9 @@ class ReplyService
 
   def initialize(params)
     @replyToken = params["events"][0]["replyToken"]
-    @line_text  = params["events"][0]["message"]["text"]
+    @line_text = params["events"][0]["message"]["text"]
     @line_id = params["webhook"]["events"][0]["source"]["roomId"] || params["webhook"]["events"][0]["source"]["groupId"] || params["webhook"]["events"][0]["source"]["userId"]
-    @event_type      = params["events"][0]["type"]
+    @event_type = params["events"][0]["type"]
   end
 
   def cancel_escape
@@ -31,31 +31,31 @@ class ReplyService
   def remind_create_content
 
     case event_type
-    when "message"
-      remind_schedule = line_text
-      if remind_datetime = ja_to_date
-        remind_schedule = reminder_create(line_id, remind_datetime)
-      elsif daily_include?(remind_schedule) == "true"
-        /日/ =~ remind_schedule
-        daily_time = daily_change(Regexp.last_match.pre_match) + ' ' + Regexp.last_match.post_match.insert(2, ":")
-        remind_schedule = reminder_create(line_id, daily_time)
-      else
-        begin
-          scheduled_at = Time.parse(line_text)
-          if scheduled_at
-            if line_text.include?("時") || line_text.include?("分")
-              remind_schedule = "時・分が入っている場合のリマインド登録はできないワン。正しいフォーマットで入力して下さい(例: 2017/08/30 10:00)"
-            else
-              remind_schedule = reminder_create(line_id, remind_schedule)
+      when "message"
+        remind_schedule = line_text
+        if remind_datetime = ja_to_date
+          remind_schedule = reminder_create(line_id, remind_datetime)
+        elsif daily_include?(remind_schedule) == "true"
+          /日/ =~ remind_schedule
+          daily_time = daily_change(Regexp.last_match.pre_match) + ' ' + Regexp.last_match.post_match.insert(2, ":")
+          remind_schedule = reminder_create(line_id, daily_time)
+        else
+          begin
+            scheduled_at = Time.parse(line_text)
+            if scheduled_at
+              if line_text.include?("時") || line_text.include?("分")
+                remind_schedule = "時・分が入っている場合のリマインド登録はできないワン。正しいフォーマットで入力して下さい(例: 2017/08/30 10:00)"
+              else
+                remind_schedule = reminder_create(line_id, remind_schedule)
+              end
+            end
+          rescue => e
+            if e
+              remind_schedule = "それじゃわからないワン。 正しいフォーマットで入力して下さい(例: 2017/08/30 10:00)"
             end
           end
-        rescue => e
-          if e
-            remind_schedule = "それじゃわからないワン。 正しいフォーマットで入力して下さい(例: 2017/08/30 10:00)"
-          end
         end
-      end
-      reply_message(remind_schedule)
+        reply_message(remind_schedule)
     end
   end
 
@@ -63,7 +63,7 @@ class ReplyService
     latest = Reminder.where(line_id: line_id, remind_status: 'sent').order('created_at DESC').first
     if latest
       Reminder.destroy(Reminder.where(line_id: line_id, created_at: latest.created_at).ids)
-      delete_judge_text =  latest.remind_content + '(' + latest.scheduled_at.to_s(:datetime) + ')のリマインドを取り消しました'
+      delete_judge_text = latest.remind_content + '(' + latest.scheduled_at.to_s(:datetime) + ')のリマインドを取り消しました'
     else
       delete_judge_text = 'リマインドは登録されていませんでした。'
     end
@@ -83,14 +83,14 @@ class ReplyService
 
   def daily_change(unformed_datetime)
     case unformed_datetime
-    when '今'
-      return Time.now.to_s(:date)
-    when '明'
-      return Time.now.tomorrow.to_s(:date)
-    when '明後'
-      return Time.now.tomorrow.tomorrow.to_s(:date)
-    when '明々後'
-      return Time.now.tomorrow.tomorrow.tomorrow.to_s(:date)
+      when '今'
+        return Time.now.to_s(:date)
+      when '明'
+        return Time.now.tomorrow.to_s(:date)
+      when '明後'
+        return Time.now.tomorrow.tomorrow.to_s(:date)
+      when '明々後'
+        return Time.now.tomorrow.tomorrow.tomorrow.to_s(:date)
     end
   end
 
@@ -117,7 +117,9 @@ class ReplyService
   end
 
   def reminder_create(line_id, scheduled_at)
-    reminder = Reminder.new(line_id: line_id, scheduled_at: scheduled_at, remind_content: @@remind_content)
+    client = LineClient.new(ENV.fetch("LINE_PRODUCTION_API_KEY"), ENV.fetch("OUTBOUND_PROXY"))
+    display_name = client.get_profile(line_id).body["displayName"]
+    reminder = Reminder.new(line_id: line_id, scheduled_at: scheduled_at, display_name: display_name, remind_content: @@remind_content)
     if reminder.save
       remind_schedule = "#{@@remind_content}の時間だワン♪"
       @@remind_content = nil
