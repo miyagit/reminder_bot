@@ -25,6 +25,24 @@ class LineClient
     res
   end
 
+  def get(path)
+    client = Faraday.new(:url => END_POINT) do |conn|
+      conn.request :json
+      conn.response :json, :content_type => /\bjson$/
+      conn.adapter Faraday.default_adapter
+      conn.proxy @proxy
+    end
+
+    res = client.post do |request|
+      request.url path
+      request.headers = {
+        'Content-type' => 'application/json',
+        'Authorization' => "Bearer #{@channel_access_token}"
+      }
+    end
+    res
+  end
+
   def reply(replyToken, text)
 
     messages = [
@@ -58,7 +76,7 @@ class LineClient
   end
 
   def get_profile(user_id)
-    get("v2/bot/profile/#{user_id}",)
+    get("v2/bot/profile/#{user_id}")
   end
 
 end
