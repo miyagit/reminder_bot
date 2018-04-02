@@ -10,11 +10,16 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20170903060712) do
+ActiveRecord::Schema.define(version: 20171017042234) do
 
-  create_table "ramen", force: :cascade, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8" do |t|
-    t.string "user_id"
+  create_table "reminders", force: :cascade, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8" do |t|
+    t.string "line_id"
+    t.string "display_name"
     t.datetime "scheduled_at"
+    t.string "remind_content"
+    t.integer "remind_status", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
 end
